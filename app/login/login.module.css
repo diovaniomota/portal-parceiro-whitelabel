@@ -1,80 +1,231 @@
 .container {
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   place-items: center;
-  padding: 1.5rem;
-  background: var(--bg-body);
+  padding: clamp(1rem, 3vh, 1.6rem) 1rem;
+  background:
+    radial-gradient(circle at 50% 10%, rgba(47, 124, 232, 0.08), transparent 32rem),
+    linear-gradient(180deg, #f7f9fc 0%, #eef4fb 100%);
+  overflow-y: auto;
+}
+
+.loginShell {
+  width: min(100%, 440px);
+  display: grid;
+  justify-items: center;
+  gap: clamp(0.8rem, 2.2vh, 1.35rem);
 }
 
 .card {
-  width: min(420px, 100%);
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 1.4rem;
-  box-shadow: var(--shadow-card);
+  width: 100%;
+  min-height: min(552px, calc(100dvh - 6.5rem));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 0;
+  border-radius: clamp(18px, 3vw, 22px);
+  padding:
+    clamp(1.7rem, 4.2vh, 2.25rem)
+    clamp(1.35rem, 4.5vw, 2.25rem)
+    clamp(1.45rem, 3.6vh, 2rem);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 20px 50px rgba(16, 43, 82, 0.1);
 }
 
 .header {
-  margin-bottom: 1.25rem;
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  margin-bottom: clamp(1.4rem, 3.8vh, 1.9rem);
+  text-align: center;
 }
 
 .brandMark {
-  width: 48px;
-  height: 48px;
-  border-radius: 8px;
-  background: var(--primary-color);
-  color: #fff;
-  display: grid;
-  place-items: center;
-  font-weight: 900;
-  margin-bottom: 0.8rem;
+  width: clamp(66px, 9dvh, 78px);
+  height: clamp(66px, 9dvh, 78px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: clamp(0.65rem, 1.8vh, 0.95rem);
+  background: transparent;
+}
+
+.brandMark img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 14px 24px rgba(16, 43, 82, 0.15));
 }
 
 .title {
-  font-size: 1.35rem;
+  color: #071b3d;
+  font-size: clamp(1.45rem, 4.8vw, 1.62rem);
   font-weight: 850;
-  color: var(--text-primary);
+  line-height: 1.1;
 }
 
 .subtitle {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  margin-top: 0.2rem;
+  color: #334f75;
+  font-size: clamp(0.88rem, 3.4vw, 0.94rem);
+  line-height: 1.45;
 }
 
 .form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
+  display: grid;
+  gap: clamp(0.82rem, 2.1vh, 1rem);
 }
 
 .field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+  display: grid;
+  gap: 0.4rem;
 }
 
 .label {
-  font-size: 0.82rem;
-  font-weight: 800;
-  color: var(--text-secondary);
+  color: #102a52;
+  font-size: clamp(0.84rem, 3vw, 0.9rem);
+  font-weight: 750;
 }
 
 .input {
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 0.75rem 0.8rem;
-  color: var(--text-primary);
-  background: var(--bg-input);
+  width: 100%;
+  min-height: clamp(44px, 6.3dvh, 48px);
+  border: 1px solid #dfe6ef;
+  border-radius: 11px;
+  padding: 0.72rem 0.9rem;
+  background: #fbfcfe;
+  color: #071b3d;
   outline: none;
+  font-size: clamp(0.9rem, 3vw, 0.96rem);
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.input::placeholder {
+  color: #aeb5be;
+}
+
+.input:focus {
+  border-color: #2961b2;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(47, 124, 232, 0.1);
+}
+
+.submitButton {
+  width: 100%;
+  min-height: clamp(42px, 6dvh, 46px);
+  margin-top: clamp(0.65rem, 2.6vh, 1.2rem);
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #071b3d;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 800;
+  box-shadow: none;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: rgba(47, 124, 232, 0.07);
+  color: #2961b2;
+}
+
+.submitButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  transform: none;
 }
 
 .error {
-  border: 1px solid rgba(220, 53, 69, 0.3);
-  background: rgba(220, 53, 69, 0.08);
-  color: var(--danger-color);
-  border-radius: 8px;
-  padding: 0.65rem;
-  font-size: 0.86rem;
+  margin: -0.65rem 0 0.95rem;
+  border: 1px solid rgba(239, 68, 68, 0.18);
+  border-radius: 10px;
+  padding: 0.68rem 0.8rem;
+  background: rgba(239, 68, 68, 0.08);
+  color: #b42318;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.accessNote {
+  margin-top: clamp(1.15rem, 3.3vh, 1.6rem);
+  color: #58739e;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.footer {
+  color: #334f75;
+  font-size: 0.84rem;
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .container {
+    padding: 0.9rem;
+  }
+
+  .loginShell {
+    width: 100%;
+    gap: 0.85rem;
+  }
+
+  .card {
+    min-height: auto;
+    border-radius: 20px;
+    padding: 1.6rem 1.1rem;
+  }
+
+  .brandMark {
+    width: 68px;
+    height: 68px;
+  }
+
+  .brandMark img {
+    width: 68px;
+  }
+
+  .footer {
+    padding-bottom: 0.25rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .card {
+    padding: 1.35rem 0.9rem;
+  }
+
+  .input {
+    padding-inline: 0.85rem;
+  }
+}
+
+@media (max-height: 720px) and (min-width: 561px) {
+  .card {
+    min-height: auto;
+    justify-content: center;
+  }
+
+  .brandMark {
+    width: 64px;
+    height: 64px;
+  }
+
+  .header {
+    gap: 0.35rem;
+  }
+
+  .accessNote {
+    margin-top: 0.85rem;
+  }
 }

@@ -1052,11 +1052,11 @@ export default function PartnerHomePage() {
             </div>
 
             <div className={styles.steps}>
-              <button type="button" className={`${styles.step} ${step >= 1 ? styles.active : ''}`} onClick={() => goToStep(1)}><span>1</span> Empresa</button>
+              <button type="button" className={`${styles.step} ${step === 1 ? styles.currentStep : step > 1 ? styles.completedStep : ''}`} onClick={() => goToStep(1)}><span>1</span> Empresa</button>
               <div className={styles.stepLine} />
-              <button type="button" className={`${styles.step} ${step >= 2 ? styles.active : ''}`} onClick={() => goToStep(2)}><span>2</span> Admin</button>
+              <button type="button" className={`${styles.step} ${step === 2 ? styles.currentStep : step > 2 ? styles.completedStep : ''}`} onClick={() => goToStep(2)}><span>2</span> Admin</button>
               <div className={styles.stepLine} />
-              <button type="button" className={`${styles.step} ${step >= 3 ? styles.active : ''}`} onClick={() => goToStep(3)}><span>3</span> Recursos</button>
+              <button type="button" className={`${styles.step} ${step === 3 ? styles.currentStep : ''}`} onClick={() => goToStep(3)}><span>3</span> Recursos</button>
             </div>
 
             {step === 1 ? (
