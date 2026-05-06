@@ -1,0 +1,110 @@
+:root {
+  color-scheme: light;
+  --primary-color: #2961b2;
+  --primary-color-alpha: rgba(41, 97, 178, 0.15);
+  --success-color: #4cb88e;
+  --warning-color: #f59e0b;
+  --danger-color: #ef4444;
+  --bg-body: #f1f6ff;
+  --bg-card: #ffffff;
+  --bg-input: #ffffff;
+  --bg-hover: #edf4ff;
+  --text-primary: #0f1f3d;
+  --text-secondary: #334f75;
+  --text-muted: #6f87ad;
+  --border-color: #d5e1f2;
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --border-radius: 8px;
+  --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--bg-body);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  line-height: 1.6;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.btn {
+  border: 0;
+  border-radius: var(--border-radius);
+  padding: 0.68rem 0.86rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  font-weight: 800;
+  min-height: 42px;
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--success-color) 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(47, 124, 232, 0.3);
+}
+
+.btnSecondary {
+  background: #fff;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.btnDanger {
+  background: transparent;
+  color: var(--danger-color);
+  border: 1px solid rgba(220, 53, 69, 0.32);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.22rem 0.55rem;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.badgeSuccess {
+  background: rgba(85, 176, 130, 0.12);
+  color: #1f7a4c;
+}
+
+.badgeDanger {
+  background: rgba(220, 53, 69, 0.1);
+  color: var(--danger-color);
+}
+
+.badgeWarning {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--warning-color);
+}
+
+.badgeDefault {
+  background: #eef2f7;
+  color: var(--text-secondary);
+}
