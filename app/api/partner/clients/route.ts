@@ -275,7 +275,8 @@ export async function POST(request: NextRequest) {
         brand_name: auth.partner.name,
         logo_url: auth.partner.logo_url || null,
         primary_color: auth.partner.primary_color || '#2961b2',
-        logo_layout: auth.partner.metadata?.logo_layout || null
+        logo_layout: auth.partner.metadata?.logo_layout || null,
+        database_mode: normalizeLower(body.databaseMode) === 'cloud' ? 'cloud' : 'local'
       }
     };
 
@@ -303,8 +304,9 @@ export async function POST(request: NextRequest) {
     }
 
     let clientAccess = null;
+    const isLocalMode = normalizeLower(body.databaseMode) === 'local';
     const adminEmail = normalizeText(body.adminEmail) || normalizeText(body.admin_email);
-    if (adminEmail) {
+    if (adminEmail && !isLocalMode) {
       const adminName = normalizeText(body.adminName) || normalizeText(body.admin_name) || organization.name || adminEmail;
       const createdUser = await createOrFindAuthUser(auth.supabaseAdmin, {
         email: adminEmail,

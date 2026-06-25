@@ -7,8 +7,11 @@ import {
   Briefcase,
   Building2,
   Calculator,
+  Cloud,
   CreditCard,
   Edit,
+  HardDrive,
+  KeyRound,
   LayoutDashboard,
   Loader2,
   Lock,
@@ -29,6 +32,8 @@ import {
   X,
   type LucideIcon
 } from 'lucide-react';
+import PartnerLicenses, { type PartnerLicense } from './components/PartnerLicenses';
+import DownloadCenter from './components/DownloadCenter';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/app/lib/supabaseClient';
 import styles from './page.module.css';
@@ -71,6 +76,7 @@ type PartnerClient = {
   system?: string | null;
   enable_tablet?: boolean | null;
   enabled_features?: string[] | null;
+  white_label_settings?: Record<string, unknown> | null;
 };
 
 type PlanOption = {
@@ -93,7 +99,7 @@ type FeatureItem = {
   category: string;
 };
 
-type ActiveView = 'dashboard' | 'clients' | 'repasse';
+type ActiveView = 'dashboard' | 'clients' | 'repasse' | 'licencas';
 
 const PLAN_ALIAS: Record<string, string> = {
   evolucao: 'prime',
@@ -292,7 +298,8 @@ const initialForm = {
   status: 'active',
   system: 'work' as 'work' | 'food',
   segment: '',
-  enableTablet: true
+  enableTablet: true,
+  databaseMode: '' as '' | 'local' | 'cloud'
 };
 
 const cleanFormat = (value: unknown) => String(value || '').replace(/\D/g, '');
@@ -426,6 +433,7 @@ export default function PartnerHomePage() {
   const [clients, setClients] = useState<PartnerClient[]>([]);
   const [plans, setPlans] = useState<PlanOption[]>(DEFAULT_PLANS);
   const [segments, setSegments] = useState<SegmentOption[]>(DEFAULT_SEGMENTS);
+  const [licenses, setLicenses] = useState<PartnerLicense[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searchingCnpj, setSearchingCnpj] = useState(false);
@@ -436,6 +444,8 @@ export default function PartnerHomePage() {
   const [search, setSearch] = useState('');
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [blockModal, setBlockModal] = useState<{ client: PartnerClient; reason: string } | null>(null);
+  const [blocking, setBlocking] = useState(false);
 
   const partnerBlocked = normalizeStatus(partner?.status) === 'blocked';
   const planOptions = plans.length > 0 ? plans : DEFAULT_PLANS;
@@ -474,10 +484,14 @@ export default function PartnerHomePage() {
     setLoading(true);
 
     try {
-      const response = await authorizedFetch('/api/partner/clients');
-      const payload = await response.json().catch(() => ({}));
+      const [clientsRes, licensesRes] = await Promise.all([
+        authorizedFetch('/api/partner/clients'),
+        authorizedFetch('/api/partner/licenses'),
+      ]);
 
-      if (response.ok && payload?.success) {
+      const payload = await clientsRes.json().catch(() => ({}));
+
+      if (clientsRes.ok && payload?.success) {
         setPartner(payload.partner || null);
         setClients(payload.clients || []);
         if (Array.isArray(payload.plans) && payload.plans.length > 0) {
@@ -489,6 +503,11 @@ export default function PartnerHomePage() {
         setMessage(null);
       } else {
         setMessage({ type: 'error', text: payload?.error || 'Não foi possível carregar os clientes.' });
+      }
+
+      const licPayload = await licensesRes.json().catch(() => ({}));
+      if (licensesRes.ok && licPayload?.success) {
+        setLicenses(licPayload.licenses || []);
       }
     } catch (error: any) {
       setMessage({ type: 'error', text: error?.message || 'Não foi possível carregar os clientes.' });
@@ -528,7 +547,21 @@ export default function PartnerHomePage() {
 
   const recentClients = useMemo(() => clients.slice(0, 5), [clients]);
   const licensePrice = useMemo(() => toMoneyNumber(partner?.license_price, 100), [partner?.license_price]);
-  const monthlyRepasse = activeClients.length * licensePrice;
+
+  const CLOUD_DB_SURCHARGE = 30;
+
+  const cloudActiveCount = useMemo(() => {
+    const activeOrgIds = new Set(
+      clients
+        .filter((c) => ['ativo', 'active'].includes(normalizeStatus(c.status)))
+        .map((c) => c.id)
+    );
+    return licenses.filter(
+      (l) => l.databaseMode === 'cloud' && l.status === 'active' && activeOrgIds.has(l.organizationId)
+    ).length;
+  }, [licenses, clients]);
+
+  const monthlyRepasse = activeClients.length * licensePrice + cloudActiveCount * CLOUD_DB_SURCHARGE;
 
   const filteredClients = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -611,7 +644,8 @@ export default function PartnerHomePage() {
       status: normalizeStatus(client.status) === 'bloqueado' ? 'blocked' : 'active',
       system: normalizeStatus(client.system) === 'food' ? 'food' : 'work',
       segment: client.segment || '',
-      enableTablet: client.enable_tablet !== false
+      enableTablet: client.enable_tablet !== false,
+      databaseMode: client.white_label_settings?.database_mode === 'cloud' ? 'cloud' : 'local'
     });
     setEnabledFeatures(features.length > 0 ? features : getDefaultFeaturesForPlan(planCode, planOptions));
     setStep(1);
@@ -710,7 +744,12 @@ export default function PartnerHomePage() {
     }
 
     if (targetStep >= 3) {
-      if (!form.plan || !form.system || (!form.id && (!form.adminName || !form.adminEmail || !form.adminPassword))) {
+      if (!form.databaseMode) {
+        setMessage({ type: 'error', text: 'Escolha o tipo de banco de dados (local ou nuvem) antes de continuar.' });
+        return false;
+      }
+      const needsAdminCredentials = !form.id && form.databaseMode !== 'local';
+      if (!form.plan || !form.system || (needsAdminCredentials && (!form.adminName || !form.adminEmail || !form.adminPassword))) {
         setMessage({ type: 'error', text: 'Preencha plano, sistema e os dados de acesso do admin.' });
         return false;
       }
@@ -739,7 +778,8 @@ export default function PartnerHomePage() {
           ...form,
           name: form.nomeFantasia || form.razaoSocial,
           planName: selectedPlanName,
-          enabledFeatures
+          enabledFeatures,
+          databaseMode: form.databaseMode
         })
       });
       const payload = await response.json().catch(() => ({}));
@@ -767,28 +807,36 @@ export default function PartnerHomePage() {
     }
   };
 
-  const handleClientStatus = async (client: PartnerClient, nextStatus: 'active' | 'blocked') => {
-    let reason = '';
-    if (nextStatus === 'blocked') {
-      reason = window.prompt('Motivo do bloqueio deste cliente:', 'Bloqueado pelo parceiro.') || '';
-      if (!reason.trim()) return;
-    }
-
+  const applyClientStatus = async (client: PartnerClient, nextStatus: 'active' | 'blocked', reason: string) => {
     const response = await authorizedFetch('/api/partner/clients', {
       method: 'PATCH',
-      body: JSON.stringify({
-        organizationId: client.id,
-        status: nextStatus,
-        reason
-      })
+      body: JSON.stringify({ organizationId: client.id, status: nextStatus, reason })
     });
     const payload = await response.json().catch(() => ({}));
-
     if (response.ok && payload?.success) {
       setMessage({ type: 'success', text: nextStatus === 'blocked' ? 'Cliente bloqueado.' : 'Cliente liberado.' });
       await loadClients();
     } else {
       setMessage({ type: 'error', text: payload?.error || 'Não foi possível atualizar o cliente.' });
+    }
+  };
+
+  const handleClientStatus = (client: PartnerClient, nextStatus: 'active' | 'blocked') => {
+    if (nextStatus === 'blocked') {
+      setBlockModal({ client, reason: 'Bloqueado pelo parceiro.' });
+      return;
+    }
+    void applyClientStatus(client, 'active', '');
+  };
+
+  const confirmBlock = async () => {
+    if (!blockModal || !blockModal.reason.trim()) return;
+    setBlocking(true);
+    try {
+      await applyClientStatus(blockModal.client, 'blocked', blockModal.reason);
+    } finally {
+      setBlocking(false);
+      setBlockModal(null);
     }
   };
 
@@ -806,6 +854,7 @@ export default function PartnerHomePage() {
   const navItems: Array<{ id: ActiveView; label: string; icon: LucideIcon }> = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'clients', label: 'Clientes', icon: UsersRound },
+    { id: 'licencas', label: 'Tokens desktop', icon: KeyRound },
     { id: 'repasse', label: 'Repasse mensal', icon: CreditCard }
   ];
 
@@ -844,7 +893,10 @@ export default function PartnerHomePage() {
         <div className={styles.sidebarCard}>
           <span>Repasse previsto</span>
           <strong>{formatCurrency(monthlyRepasse)}</strong>
-          <small>{activeClients.length} licença{activeClients.length === 1 ? '' : 's'} ativa{activeClients.length === 1 ? '' : 's'}</small>
+          <small>
+            {activeClients.length} ativa{activeClients.length === 1 ? '' : 's'}
+            {cloudActiveCount > 0 ? ` · ${cloudActiveCount} em nuvem` : ''}
+          </small>
         </div>
 
         <button className={`btn btnSecondary ${styles.logout}`} type="button" onClick={handleLogout}>
@@ -999,6 +1051,8 @@ export default function PartnerHomePage() {
                 </div>
               </section>
             </div>
+
+            <DownloadCenter />
           </div>
         ) : null}
 
@@ -1201,20 +1255,63 @@ export default function PartnerHomePage() {
                   </label>
                 )}
 
-                <div className={styles.gridTwo}>
-                  <label className={styles.field}>
-                    <span className={styles.label}>Nome do Admin {form.id ? '' : '*'}</span>
-                    <input className={styles.input} value={form.adminName} onChange={(event) => handleFieldChange('adminName', event.target.value)} required={!form.id} />
-                  </label>
-                  <label className={styles.field}>
-                    <span className={styles.label}>Email de Acesso {form.id ? '' : '*'}</span>
-                    <input className={styles.input} type="email" value={form.adminEmail} onChange={(event) => handleFieldChange('adminEmail', event.target.value)} required={!form.id} />
-                  </label>
-                  <label className={`${styles.field} ${styles.fullWidth}`}>
-                    <span className={styles.label}>Senha Inicial {form.id ? '' : '*'}</span>
-                    <input className={styles.input} type="password" value={form.adminPassword} onChange={(event) => handleFieldChange('adminPassword', event.target.value)} minLength={6} required={!form.id} />
-                  </label>
+                <div style={{ marginBottom: 24 }}>
+                  <span className={styles.label} style={{ display: 'block', marginBottom: 10 }}>Tipo de Banco de Dados *</span>
+                  <div className={styles.systemGrid}>
+                    <button
+                      type="button"
+                      className={`${styles.systemCard} ${form.databaseMode === 'local' ? styles.systemActive : ''}`}
+                      onClick={() => updateField('databaseMode', 'local')}
+                    >
+                      <HardDrive size={28} />
+                      <strong>Banco Local</strong>
+                      <span>Instalado no servidor do cliente</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.systemCard} ${form.databaseMode === 'cloud' ? styles.systemActive : ''}`}
+                      onClick={() => updateField('databaseMode', 'cloud')}
+                      style={{ position: 'relative' }}
+                    >
+                      <div style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 6, padding: '2px 7px', fontSize: '0.72rem', fontWeight: 700, color: '#fbbf24' }}>
+                        +R$30/mês
+                      </div>
+                      <Cloud size={28} />
+                      <strong>Banco em Nuvem</strong>
+                      <span>Hospedado no servidor DartSoft</span>
+                    </button>
+                  </div>
+                  {form.databaseMode === 'cloud' && (
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10, padding: '10px 12px', borderRadius: 8, background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.18)' }}>
+                      <AlertTriangle size={15} style={{ color: '#fbbf24', flexShrink: 0, marginTop: 1 }} />
+                      <span style={{ fontSize: '0.8rem', color: '#fbbf24', lineHeight: 1.45 }}>
+                        O banco em nuvem adiciona <strong>R$30,00</strong> por mês ao custo da mensalidade deste cliente.
+                      </span>
+                    </div>
+                  )}
                 </div>
+
+                {form.databaseMode === 'local' ? (
+                  <div style={{ padding: '14px 16px', borderRadius: 10, background: 'rgba(91,156,246,0.07)', border: '1px solid rgba(91,156,246,0.18)', fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                    <strong style={{ color: 'var(--primary)', display: 'block', marginBottom: 4 }}>Banco local selecionado</strong>
+                    O acesso do administrador será configurado durante a instalação local do sistema. Nenhum usuário será criado no servidor cloud.
+                  </div>
+                ) : (
+                  <div className={styles.gridTwo}>
+                    <label className={styles.field}>
+                      <span className={styles.label}>Nome do Admin {form.id ? '' : '*'}</span>
+                      <input className={styles.input} value={form.adminName} onChange={(event) => handleFieldChange('adminName', event.target.value)} required={!form.id} />
+                    </label>
+                    <label className={styles.field}>
+                      <span className={styles.label}>Email de Acesso {form.id ? '' : '*'}</span>
+                      <input className={styles.input} type="email" value={form.adminEmail} onChange={(event) => handleFieldChange('adminEmail', event.target.value)} required={!form.id} />
+                    </label>
+                    <label className={`${styles.field} ${styles.fullWidth}`}>
+                      <span className={styles.label}>Senha Inicial {form.id ? '' : '*'}</span>
+                      <input className={styles.input} type="password" value={form.adminPassword} onChange={(event) => handleFieldChange('adminPassword', event.target.value)} minLength={6} required={!form.id} />
+                    </label>
+                  </div>
+                )}
                 <div className={styles.actions}>
                   <button className="btn btnSecondary" type="button" onClick={() => goToStep(1)}>Voltar</button>
                   <button className="btn btnPrimary" type="button" onClick={() => goToStep(3)}>Próximo</button>
@@ -1308,6 +1405,16 @@ export default function PartnerHomePage() {
           </div>
         ) : null}
 
+        {activeView === 'licencas' ? (
+          <PartnerLicenses
+            clients={clients}
+            licenses={licenses}
+            partnerBlocked={partnerBlocked}
+            authorizedFetch={authorizedFetch}
+            onLicensesChange={setLicenses}
+          />
+        ) : null}
+
         {activeView === 'repasse' ? (
           <div className={styles.page}>
             <header className={styles.hero}>
@@ -1365,9 +1472,19 @@ export default function PartnerHomePage() {
                       <strong>{activeClients.length}</strong>
                     </div>
                     <div>
-                      <span>Preço unitário</span>
+                      <span>Preço por licença</span>
                       <strong>{formatCurrency(licensePrice)}</strong>
                     </div>
+                    <div>
+                      <span>Subtotal licenças</span>
+                      <strong>{formatCurrency(activeClients.length * licensePrice)}</strong>
+                    </div>
+                    {cloudActiveCount > 0 ? (
+                      <div>
+                        <span>Banco em nuvem ({cloudActiveCount} × R$ {CLOUD_DB_SURCHARGE})</span>
+                        <strong>{formatCurrency(cloudActiveCount * CLOUD_DB_SURCHARGE)}</strong>
+                      </div>
+                    ) : null}
                     <div className={styles.invoiceTotal}>
                       <span>Total previsto</span>
                       <strong>{formatCurrency(monthlyRepasse)}</strong>
@@ -1438,6 +1555,171 @@ export default function PartnerHomePage() {
           </div>
         ) : null}
       </section>
+
+      {blockModal ? (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 2000,
+            background: 'rgba(0,0,0,0.65)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 24,
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget && !blocking) setBlockModal(null); }}
+        >
+          <div
+            style={{
+              width: 'min(460px, 100%)',
+              background: '#18181c',
+              border: '1px solid #2e2e38',
+              borderRadius: 16,
+              padding: '24px 26px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 20,
+              boxShadow: '0 32px 80px rgba(0,0,0,0.7)',
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+              <div
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 10,
+                  background: 'rgba(248,113,113,0.12)',
+                  border: '1px solid rgba(248,113,113,0.22)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  color: '#f87171',
+                }}
+              >
+                <Lock size={20} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: '#f0f0f3', fontSize: '1rem', fontWeight: 700, lineHeight: 1.2 }}>
+                  Bloquear cliente
+                </div>
+                <div style={{ marginTop: 4, color: '#9898b0', fontSize: '0.8125rem', lineHeight: 1.4 }}>
+                  <strong style={{ color: '#c8c8d8' }}>{blockModal.client.nome_fantasia || blockModal.client.name}</strong>
+                  {' '}perderá acesso ao sistema imediatamente.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { if (!blocking) setBlockModal(null); }}
+                disabled={blocking}
+                style={{
+                  width: 30,
+                  height: 30,
+                  border: '1px solid #2e2e38',
+                  borderRadius: 6,
+                  background: 'transparent',
+                  color: '#55556a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  fontSize: '1.1rem',
+                  lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Motivo */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ color: '#9898b0', fontSize: '0.75rem', fontWeight: 600 }}>
+                Motivo do bloqueio
+              </label>
+              <textarea
+                value={blockModal.reason}
+                onChange={(e) => setBlockModal((prev) => prev ? { ...prev, reason: e.target.value } : prev)}
+                rows={3}
+                disabled={blocking}
+                placeholder="Informe o motivo do bloqueio..."
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  background: '#0f0f12',
+                  border: '1px solid #2e2e38',
+                  borderRadius: 8,
+                  color: '#f0f0f3',
+                  fontSize: '0.875rem',
+                  lineHeight: 1.5,
+                  resize: 'vertical',
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                  transition: 'border-color 0.15s ease',
+                }}
+                onFocus={(e) => { e.target.style.borderColor = '#f87171'; e.target.style.boxShadow = '0 0 0 3px rgba(248,113,113,0.1)'; }}
+                onBlur={(e) => { e.target.style.borderColor = '#2e2e38'; e.target.style.boxShadow = 'none'; }}
+              />
+            </div>
+
+            {/* Aviso */}
+            <div
+              style={{
+                display: 'flex',
+                gap: 10,
+                padding: '10px 12px',
+                borderRadius: 8,
+                background: 'rgba(251,191,36,0.07)',
+                border: '1px solid rgba(251,191,36,0.15)',
+              }}
+            >
+              <AlertTriangle size={16} style={{ color: '#fbbf24', flexShrink: 0, marginTop: 1 }} />
+              <span style={{ color: '#fbbf24', fontSize: '0.8125rem', lineHeight: 1.4 }}>
+                O cliente receberá uma mensagem de bloqueio ao tentar acessar o sistema.
+              </span>
+            </div>
+
+            {/* Ações */}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="btn btnSecondary"
+                onClick={() => setBlockModal(null)}
+                disabled={blocking}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmBlock}
+                disabled={blocking || !blockModal.reason.trim()}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '0 16px',
+                  height: 36,
+                  border: 'none',
+                  borderRadius: 8,
+                  background: blocking ? 'rgba(248,113,113,0.4)' : '#f87171',
+                  color: '#0a0a14',
+                  fontWeight: 700,
+                  fontSize: '0.8125rem',
+                  cursor: blocking ? 'not-allowed' : 'pointer',
+                  boxShadow: blocking ? 'none' : '0 2px 8px rgba(248,113,113,0.3)',
+                  transition: 'background 0.15s ease, box-shadow 0.15s ease',
+                }}
+              >
+                <Lock size={15} />
+                {blocking ? 'Bloqueando...' : 'Bloquear cliente'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

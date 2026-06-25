@@ -5,8 +5,8 @@
   place-items: center;
   padding: clamp(1rem, 3vh, 1.6rem) 1rem;
   background:
-    radial-gradient(circle at 50% 10%, rgba(47, 124, 232, 0.08), transparent 32rem),
-    linear-gradient(180deg, #f7f9fc 0%, #eef4fb 100%);
+    radial-gradient(circle at 50% 0%, rgba(91,156,246,0.07), transparent 28rem),
+    #0c0c0e;
   overflow-y: auto;
 }
 
@@ -23,14 +23,14 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  border: 0;
+  border: 1px solid #22222a;
   border-radius: clamp(18px, 3vw, 22px);
   padding:
     clamp(1.7rem, 4.2vh, 2.25rem)
     clamp(1.35rem, 4.5vw, 2.25rem)
     clamp(1.45rem, 3.6vh, 2rem);
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 20px 50px rgba(16, 43, 82, 0.1);
+  background: #141417;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
 }
 
 .header {
@@ -56,18 +56,18 @@
   height: auto;
   object-fit: contain;
   display: block;
-  filter: drop-shadow(0 14px 24px rgba(16, 43, 82, 0.15));
+  filter: drop-shadow(0 8px 20px rgba(91,156,246,0.25));
 }
 
 .title {
-  color: #071b3d;
+  color: #f0f0f3;
   font-size: clamp(1.45rem, 4.8vw, 1.62rem);
-  font-weight: 850;
+  font-weight: 800;
   line-height: 1.1;
 }
 
 .subtitle {
-  color: #334f75;
+  color: #6a6a80;
   font-size: clamp(0.88rem, 3.4vw, 0.94rem);
   line-height: 1.45;
 }
@@ -83,19 +83,19 @@
 }
 
 .label {
-  color: #102a52;
+  color: #9898b0;
   font-size: clamp(0.84rem, 3vw, 0.9rem);
-  font-weight: 750;
+  font-weight: 600;
 }
 
 .input {
   width: 100%;
   min-height: clamp(44px, 6.3dvh, 48px);
-  border: 1px solid #dfe6ef;
+  border: 1px solid #26262e;
   border-radius: 11px;
   padding: 0.72rem 0.9rem;
-  background: #fbfcfe;
-  color: #071b3d;
+  background: #1c1c21;
+  color: #f0f0f3;
   outline: none;
   font-size: clamp(0.9rem, 3vw, 0.96rem);
   transition:
@@ -105,67 +105,67 @@
 }
 
 .input::placeholder {
-  color: #aeb5be;
+  color: #45455a;
 }
 
 .input:focus {
-  border-color: #2961b2;
-  background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(47, 124, 232, 0.1);
+  border-color: #5b9cf6;
+  background: #1c1c28;
+  box-shadow: 0 0 0 3px rgba(91,156,246,0.14);
 }
 
 .submitButton {
   width: 100%;
   min-height: clamp(42px, 6dvh, 46px);
   margin-top: clamp(0.65rem, 2.6vh, 1.2rem);
-  border: 0;
+  border: none;
   border-radius: 10px;
-  background: transparent;
-  color: #071b3d;
+  background: #5b9cf6;
+  color: #0a0a14;
   cursor: pointer;
   font-size: 0.95rem;
-  font-weight: 800;
-  box-shadow: none;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(91,156,246,0.3);
   transition:
     background 0.16s ease,
-    color 0.16s ease,
+    box-shadow 0.16s ease,
     transform 0.16s ease;
 }
 
 .submitButton:hover:not(:disabled) {
+  background: #74aef8;
+  box-shadow: 0 4px 14px rgba(91,156,246,0.4);
   transform: translateY(-1px);
-  background: rgba(47, 124, 232, 0.07);
-  color: #2961b2;
 }
 
 .submitButton:disabled {
   cursor: not-allowed;
-  opacity: 0.58;
+  opacity: 0.45;
   transform: none;
 }
 
 .error {
   margin: -0.65rem 0 0.95rem;
-  border: 1px solid rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(248,113,113,0.2);
   border-radius: 10px;
   padding: 0.68rem 0.8rem;
-  background: rgba(239, 68, 68, 0.08);
-  color: #b42318;
+  background: rgba(248,113,113,0.08);
+  color: #f87171;
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 600;
   text-align: center;
 }
 
 .accessNote {
   margin-top: clamp(1.15rem, 3.3vh, 1.6rem);
-  color: #58739e;
+  color: #45455a;
   font-size: 0.78rem;
   line-height: 1.45;
   text-align: center;
 }
 
 .footer {
-  color: #334f75;
+  color: #55556a;
   font-size: 0.84rem;
   text-align: center;
 }
